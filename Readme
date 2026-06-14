@@ -1,0 +1,177 @@
+## 什么是人工神经网络？
+人工神经网络是受生物神经元启发的计算模型，由多个神经元层组成：
+生物神经元                人工神经元
+─────────────────────────────────────────────────
+树突  → 接收信号      →   输入特征 (x₁, x₂, x₃)
+细胞核 → 处理信号     →   加权求和 + 激活函数
+轴突  → 传递信号      →   输出值 (y)
+突触  → 连接强度      →   权重 (w₁, w₂, w₃)
+
+eg:
+import numpy as np
+
+class Neuron:
+    """单个神经元"""
+    def __init__(self, num_inputs):
+        # 权重：每个输入有一个权重（类似突触强度）
+        self.weights = np.random.randn(num_inputs) * 0.1
+        self.bias = 0  # 偏置（类似激活阈值）
+    
+    def forward(self, inputs):
+        # 1. 加权求和：Σ(输入 × 权重)
+        z = np.dot(inputs, self.weights) + self.bias
+        
+        # 2. 激活函数：引入非线性
+        output = self._sigmoid(z)
+        return output
+    
+    def _sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+- 示例：一个判断"是否下雨"的神经元
+neuron = Neuron(num_inputs=3)  # 输入：湿度、气压、温度
+result = neuron.forward([0.8, 0.6, 0.3])  # 输出下雨的概率
+print(f"下雨概率: {result:.2%}")
+
+输入层          隐藏层          输出层
+(400个节点)    (可变节点)      (10个节点)
+    │              │              │
+    x₁ ────────→   ○ ────────→    ○  (数字0)
+    x₂ ────────→   ○ ────────→    ○  (数字1)
+    x₃ ────────→   ○ ────────→    ○  (数字2)
+    ...           ...            ...
+    x₄₀₀ ───────→  ○ ────────→    ○  (数字9)
+    
+    ↑              ↑              ↑
+  原始数据      特征提取        最终预测
+ (像素值)      (抽象特征)      (10个类别)
+
+## 前向传播（Forward Propagation）
+前向传播是信息从输入流向输出的过程，就像信号在神经网络中“向前”传递：输入数据 → 逐层计算 → 得到预测结果 
+输入 → 乘以权重 → 加偏置 → 激活函数 → 输出
+
+简单公式: 
+hidden = sigmoid(input × W1 + b1)
+output = sigmoid(hidden × W2 + b2)
+用途：用当前网络参数做出预测
+
+来自 ocr.py 的前向传播部分
+def predict(self, test):
+    # 前向传播：输入 → 隐藏层
+    y1 = np.dot(self.theta1, test)           # 加权求和
+    y1 = y1 + self.input_layer_bias          # 加偏置
+    y1 = self.sigmoid(y1)                    # 激活函数
+    
+    # 前向传播：隐藏层 → 输出层
+    y2 = np.dot(self.theta2, y1)             # 加权求和
+    y2 = y2 + self.hidden_layer_bias         # 加偏置
+    y2 = self.sigmoid(y2)                    # 激活函数
+    
+    # 选择概率最高的类别
+    return y2.tolist()[0].index(max(y2.tolist()[0]))
+
+## 反向传播
+误差从输出反向传回，调整权重的过程，是神经网络“学习”的核心：核心思想告诉每个权重，它对总误差"贡献"了多少
+反向传播的数学原理：
+
+误差函数: E = ½(实际值 - 预测值)²
+
+链式法则: ∂E/∂w = ∂E/∂输出 × ∂输出/∂加权和 × ∂加权和/∂w
+
+梯度下降: w_new = w_old - 学习率 × ∂E/∂w
+"""
+场景：教会一个孩子认识数字"3"
+
+前向传播：看到数字 → 大脑处理 → 猜测答案
+反向传播：猜错了 → 分析哪里错了 → 调整认知
+"""
+来自 ocr.py 的反向传播部分
+def train(self, training_data_array):
+    for data in training_data_array:
+        # ... 前向传播代码 ...
+        
+        # ========== 反向传播开始 ==========
+        
+        # 步骤1: 计算输出层误差
+        # 将标签转换为one-hot编码 [0,0,0,1,0,0,0,0,0,0] 表示数字3
+        actual_vals = [0] * 10
+        actual_vals[label_data] = 1
+        output_errors = actual_vals - y2  # 预测值与真实值的差距
+        
+        # 步骤2: 计算隐藏层误差
+        # 误差通过权重矩阵反向传播到隐藏层
+        hidden_errors = np.dot(theta2.T, output_errors) * sigmoid_prime(sum1)
+        
+        # 步骤3: 更新权重（告诉每个权重应该调整多少）
+        # 输入层→隐藏层的权重
+        self.theta1 += LEARNING_RATE * np.dot(hidden_errors, y0_data)
+        
+        # 隐藏层→输出层的权重
+        self.theta2 += LEARNING_RATE * np.dot(output_errors, y1.T)
+        
+        # 更新偏置
+        self.hidden_layer_bias += LEARNING_RATE * output_errors
+        self.input_layer_bias += LEARNING_RATE * hidden_errors
+ 
+## 如何使用人工神经网络(ANN)
+"""
+使用ANN的7个步骤
+"""
+
+ 1. 准备数据
+X_train = load_images()     # 特征：图像像素
+y_train = load_labels()     # 标签：数字0-9
+
+ 2. 数据预处理
+X_train = X_train / 255.0   # 归一化到[0,1]
+X_train, X_test, y_train, y_test = train_test_split(X_train, y_train)
+
+ 3. 设计网络结构
+input_size = 400    # 输入层节点数
+hidden_size = 20    # 隐藏层节点数
+output_size = 10    # 输出层节点数
+
+ 4. 初始化参数
+weights = initialize_weights(input_size, hidden_size)
+biases = initialize_biases(hidden_size)
+
+ 5. 训练网络（重复多次）
+for epoch in range(100):
+    for batch in training_data:
+        # 前向传播：计算预测
+        predictions = forward_propagation(batch)
+        
+        # 计算损失
+        loss = calculate_loss(predictions, labels)
+        
+        # 反向传播：更新权重
+        backward_propagation(loss)
+
+ 6. 评估模型
+accuracy = evaluate(X_test, y_test)
+print(f"测试准确率: {accuracy:.2%}")
+
+ 7. 部署使用
+def predict_new_image(image):
+    processed = preprocess(image)  # 预处理
+    result = neural_network.forward(processed)  # 前向传播
+    return result.argmax()  # 返回预测数字
+
+## flow
+用户绘制数字 → 前向传播 → 输出每个数字的概率 → 选择最高值
+     ↑                                          ↓
+     └──────── 反向传播（训练时）← 对比正确标签  ←—┘
+┌─────────────────────────────────────────────────────────────┐
+│                    监督学习标准流程                           │
+├─────────────────────────────────────────────────────────────┤
+│  1. 数据收集    →  data.csv (5000张手写数字图像)              │ 
+│  2. 数据预处理  →  归一化、分割训练集/测试集                   │
+│  3. 模型设计    →  选择神经网络结构和激活函数                  │
+│  4. 模型训练    →  反向传播算法更新权重                        │
+│  5. 模型评估    →  test()函数计算准确率                       │
+│  6. 模型优化    →  调整隐藏层节点数寻找最佳性能                │
+│  7. 模型部署    →  保存权重到nn.json，启动HTTP服务器           │
+│  8. 在线学习    →  用户绘制新数字可以继续训练网络               │
+└─────────────────────────────────────────────────────────────┘
+## Resource
+https://github.com/aosabook/500lines/tree/master/ocr
